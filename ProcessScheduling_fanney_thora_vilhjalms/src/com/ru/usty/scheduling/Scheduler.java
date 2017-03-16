@@ -62,14 +62,14 @@ public class Scheduler {
 		 */
 
 		switch(policy) {
-		case FCFS:	//First-come-first-served
+		case FCFS:	//First-come-first-served, non-preemptive, interrupt on finish
 			System.out.println("Starting new scheduling task: First-come-first-served");
 			/**
 			 * Add your policy specific initialization code here (if needed)
 			 */ 
 			
 			break;
-		case RR:	//Round robin
+		case RR:	//Round robin, preemptive and timer
 			System.out.println("Starting new scheduling task: Round robin, quantum = " + quantum);
 			/**
 			 * 
@@ -82,20 +82,20 @@ public class Scheduler {
 			 * Add your policy specific initialization code here (if needed)
 			 */
 			break;
-		case SRT:	//Shortest remaining time
+		case SRT:	//Shortest remaining time, preemptive (interrupt in add and finish)
 			System.out.println("Starting new scheduling task: Shortest remaining time");
 			/**
 			 * Add your policy specific initialization code here (if needed)
 			 */
 			break;
-		case HRRN:	//Highest response ratio next
-		 									
+		case HRRN:	//Highest response ratio next, non-preemptive (interrupt in finish)
+		 			// monitor if there is a process already running						
 			System.out.println("Starting new scheduling task: Highest response ratio next");
 			/**
 			 * Add your policy specific initialization code here (if needed)
 			 */
 			break;
-		case FB:	//Feedback
+		case FB:	//Feedback, preemptive and timer
 			System.out.println("Starting new scheduling task: Feedback, quantum = " + quantum);
 			/**
 			 * Add your policy specific initialization code here (if needed)

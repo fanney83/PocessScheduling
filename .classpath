@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="ProcessScheduling_fanney_thora_vilhjalms/src"/>
+	<classpathentry kind="lib" path="ProcessScheduling_fanney_thora_vilhjalms/libs/gdx-backend-lwjgl-natives.jar"/>
+	<classpathentry kind="lib" path="ProcessScheduling_fanney_thora_vilhjalms/libs/gdx-backend-lwjgl.jar"/>
+	<classpathentry kind="lib" path="ProcessScheduling_fanney_thora_vilhjalms/libs/gdx-natives.jar"/>
+	<classpathentry kind="lib" path="ProcessScheduling_fanney_thora_vilhjalms/libs/gdx.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="output" path="ProcessScheduling_fanney_thora_vilhjalms/bin"/>
+</classpath>
