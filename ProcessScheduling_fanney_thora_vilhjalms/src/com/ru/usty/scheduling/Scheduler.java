@@ -1,5 +1,6 @@
 package com.ru.usty.scheduling;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -31,8 +32,8 @@ public class Scheduler implements Runnable {
 	long startedProcess;
 	
 	Queue<ProcessData> processQueue;
-	Queue<ProcessData> processQueueSPN;
-	Queue<ProcessData> processQueueSRT;
+	ArrayList<ProcessData> processQueueSPN;
+	ArrayList<ProcessData> processQueueSRT;
 
 	/**
 	 * DO NOT CHANGE DEFINITION OF OPERATION
@@ -74,7 +75,7 @@ public class Scheduler implements Runnable {
 			break;
 		case SPN:	//Shortest process next
 			System.out.println("Starting new scheduling task: Shortest process next");
-			processQueueSPN = new LinkedList<ProcessData>();
+			processQueueSPN = new ArrayList<ProcessData>();
 			
 			
 			break;
@@ -139,23 +140,17 @@ public class Scheduler implements Runnable {
 			}
 			break;
 		case SPN:
-			
 			//Er process runnandi
 			if(!processIsRunning) {
-				//ef ekki, adda á queue
-				//tékka hvort queue sé tóm
-				if(processQueueSPN.isEmpty()) {
-					processExecution.switchToProcess(processID);
-					processQueueSPN.add(new ProcessData(processID, processExecution.getProcessInfo(processID).totalServiceTime));
-					
-				}
+
+				processExecution.switchToProcess(processID);
 				this.processIsRunning = true;
-				
 			}
+			
 			else {
-				
-				
+				processQueueSPN.add(new ProcessData(processID, processExecution.getProcessInfo(processID).totalServiceTime));
 			}
+				
 		default:
 			break;
 		
@@ -202,8 +197,33 @@ public class Scheduler implements Runnable {
 			// TODO: mælingar á tíma
 			break;
 		case SPN:
+			
+			if(!processQueueSPN.isEmpty()) {
+								
+				int queueID = 0;
+				long tempTime= 1000000000;
+				
+				for(int i = 0; i < processQueueSPN.size(); i++) {
+					
+					if(processQueueSPN.get(i).someTime < tempTime) {
+						
+						tempTime = processQueueSPN.get(i).someTime;
+						queueID = i;
+					}
+				}
+				processExecution.switchToProcess(processQueueSPN.get(queueID).processID);	
+				processQueueSPN.remove(queueID);
+				processIsRunning = true;
+			}
+			else {
+				
+				processExecution.switchToProcess(processID);
+				processIsRunning  = false;
+			}
 			System.out.println("Búúúúiiiin: " + processID);	
+			
 			break;
+			
 		default:
 			break;
 		}
