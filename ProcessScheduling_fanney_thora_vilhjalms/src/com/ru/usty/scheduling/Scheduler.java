@@ -1,5 +1,6 @@
 package com.ru.usty.scheduling;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -38,8 +39,8 @@ public class Scheduler implements Runnable {
 	long startedProcess;
 	
 	Queue<ProcessData> processQueue;
-	Queue<ProcessData> processQueueSPN;
-	Queue<ProcessData> processQueueSRT;
+	ArrayList<ProcessData> processQueueSPN;
+	ArrayList<ProcessData> processQueueSRT;
 
 	public Scheduler(ProcessExecution processExecution) {
 		this.processExecution = processExecution;
@@ -82,7 +83,7 @@ public class Scheduler implements Runnable {
 			break;
 		case SPN:	//Shortest process next
 			System.out.println("Starting new scheduling task: Shortest process next");
-			processQueueSPN = new LinkedList<ProcessData>();
+			processQueueSPN = new ArrayList<ProcessData>();
 			
 			
 			break;
@@ -142,32 +143,23 @@ public class Scheduler implements Runnable {
 			}
 			break;
 		case SPN:
-			
 			//Er process runnandi
 			if(!processIsRunning) {
-				//ef ekki, adda á queue
-				//tékka hvort queue sé tóm
-				if(processQueueSPN.isEmpty()) {
-					processExecution.switchToProcess(processID);
-					processQueueSPN.add(new ProcessData(processID, processExecution.getProcessInfo(processID).totalServiceTime));
-					
-				}
+				startRun[processID] = System.currentTimeMillis();
+				processExecution.switchToProcess(processID);
 				this.processIsRunning = true;
-				
 			}
+			
 			else {
-				
-				
+				processQueueSPN.add(new ProcessData(processID, processExecution.getProcessInfo(processID).totalServiceTime));
 			}
+				
 		default:
 			break;
 		
 		}
 	}
 
-	/**
-	 * DO NOT CHANGE DEFINITION OF OPERATION
-	 */
 	public void processFinished(int processID) {
 		finished[processID] = System.currentTimeMillis();
 		this.numberOfProcesses++;
@@ -189,29 +181,43 @@ public class Scheduler implements Runnable {
 				calculator();
 			}
 			break;
-		case RR:/*
-			System.out.println("Búúúúiiiin: " + processID);	
-			processQueue.remove();
-			processIsRunning = false;
-			// switch ef queue er ekki tóm
-			if(processQueue.peek() != null){
-				processIsRunning = true;
-				currentProcess = processQueue.peek();
-				startedProcess = System.currentTimeMillis();
-				processExecution.switchToProcess(processQueue.peek().processID);
-				
-				
-			}
-			else {processIsRunning = false;}*/
-			
-			// TODO: mælingar á tíma
+		case RR:
 			if(numberOfProcesses == 15){
 				calculator();
 			}
 			break;
 		case SPN:
+			
+			if(!processQueueSPN.isEmpty()) {
+								
+				int queueID = 0;
+				long tempTime= 1000000000;
+				
+				for(int i = 0; i < processQueueSPN.size(); i++) {
+					
+					if(processQueueSPN.get(i).someTime < tempTime) {
+						
+						tempTime = processQueueSPN.get(i).someTime;
+						queueID = i;
+					}
+				}
+				startRun[processQueueSPN.get(queueID).processID] = System.currentTimeMillis();
+				processExecution.switchToProcess(processQueueSPN.get(queueID).processID);	
+				processQueueSPN.remove(queueID);
+				processIsRunning = true;
+			}
+			else {
+				
+				processExecution.switchToProcess(processID);
+				processIsRunning  = false;
+			}
 			System.out.println("Búúúúiiiin: " + processID);	
+			if(numberOfProcesses == 15){
+				calculator();
+			}
+			
 			break;
+			
 		default:
 			break;
 		}
