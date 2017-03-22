@@ -181,7 +181,7 @@ public class Scheduler implements Runnable {
 				processExecution.switchToProcess(processQueue.peek().processID);			
 			}		
 			break;
-		case RR:
+		case RR:/*
 			System.out.println("Búúúúiiiin: " + processID);	
 			processQueue.remove();
 			processIsRunning = false;
@@ -197,7 +197,7 @@ public class Scheduler implements Runnable {
 					startRun[currentProcess.processID] = System.currentTimeMillis();
 				}
 			}
-			else {processIsRunning = false;}
+			else {processIsRunning = false;}*/
 			
 			// TODO: mælingar á tíma
 			break;
