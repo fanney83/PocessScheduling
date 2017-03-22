@@ -3,8 +3,10 @@ package com.ru.usty.scheduling;
 import java.util.LinkedList;
 import java.util.Queue;
 
+
 import com.ru.usty.scheduling.process.ProcessExecution;
 import com.ru.usty.scheduling.process.ProcessHandler;
+import com.ru.usty.scheduling.process.ProcessInfo;
 
 public class Scheduler implements Runnable {
 
@@ -27,6 +29,8 @@ public class Scheduler implements Runnable {
 	long startedProcess;
 	
 	Queue<ProcessData> processQueue;
+	Queue<ProcessData> processQueueSPN;
+	Queue<ProcessData> processQueueSRT;
 
 	/**
 	 * DO NOT CHANGE DEFINITION OF OPERATION
@@ -64,9 +68,9 @@ public class Scheduler implements Runnable {
 			break;
 		case SPN:	//Shortest process next
 			System.out.println("Starting new scheduling task: Shortest process next");
-			/**
-			 * Add your policy specific initialization code here (if needed)
-			 */
+			processQueueSPN = new LinkedList<ProcessData>();
+			
+			
 			break;
 		case SRT:	//Shortest remaining time, preemptive (interrupt in add and finish)
 			System.out.println("Starting new scheduling task: Shortest remaining time");
@@ -125,6 +129,24 @@ public class Scheduler implements Runnable {
 			else {
 				processQueue.add(new ProcessData(processID));
 			}
+		case SPN:
+			
+			//Er process runnandi
+			if(!processIsRunning) {
+				//ef ekki, adda á queue
+				//tékka hvort queue sé tóm
+				if(processQueueSPN.isEmpty()) {
+					processExecution.switchToProcess(processID);
+					processQueueSPN.add(new ProcessData(processID, processExecution.getProcessInfo(processID).totalServiceTime));
+					
+				}
+				this.processIsRunning = true;
+				
+			}
+			else {
+				
+				
+			}
 		default:
 			break;
 		
@@ -164,6 +186,9 @@ public class Scheduler implements Runnable {
 					startRun[currentProcess.processID] = System.currentTimeMillis();
 				}
 			}
+			
+		case SPN:
+			System.out.println("Búúúúiiiin: " + processID);	
 			
 		default:
 			break;

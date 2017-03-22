@@ -109,19 +109,7 @@ public class TestSuite {
 
 				startScheduling(nextPolicy, nextQuantum);
 				switch(nextPolicy) {
-				case FCFS:
-					nextPolicy = Policy.RR;
-					break;
-				case RR:
-					if(nextQuantum == 500) {
-						nextPolicy = Policy.RR;
-						nextQuantum = 2000;
-					}
-					else {
-						nextPolicy = Policy.SPN;
-						nextQuantum = 500;
-					}
-					break;
+				
 				case SPN:
 					nextPolicy = Policy.SRT;
 					break;
