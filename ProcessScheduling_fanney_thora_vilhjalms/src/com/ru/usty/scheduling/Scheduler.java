@@ -23,7 +23,9 @@ public class Scheduler implements Runnable {
 	boolean processIsRunning;
 	
 	// Thread time monitor for Round Robin
+	// there may be only one thread so after starting one, threadMayRun becomes false
 	Thread threadRR;
+	boolean threadMayRun = true;
 	
 	// The time when a process starts running
 	long startedProcess;
@@ -60,11 +62,15 @@ public class Scheduler implements Runnable {
 			System.out.println("Starting new scheduling task: First-come-first-served");
 			processQueue = new LinkedList<ProcessData>(); 		
 			break;
-		case RR:	//Round robin, preemptive and timer
+		case RR:	//Round robin, preemptive and timer interrupt
 			System.out.println("Starting new scheduling task: Round robin, quantum = " + quantum);
 			processQueue = new LinkedList<ProcessData>();
 			// start the thread monitor
-			threadRR = new Thread(this);
+			if(threadMayRun) {
+				threadRR = new Thread(this);
+				threadRR.start();
+			}
+			threadMayRun = false;
 			break;
 		case SPN:	//Shortest process next
 			System.out.println("Starting new scheduling task: Shortest process next");
@@ -103,32 +109,35 @@ public class Scheduler implements Runnable {
 	 * DO NOT CHANGE DEFINITION OF OPERATION
 	 */
 	public void processAdded(int processID) {
+		added[processID] = System.currentTimeMillis();
+		
 		switch(policy) {
 		case FCFS:
 			// tékka hvort einhver process sé keyrandi
 			if(!processIsRunning) {
 				// process er addað og er fremstur og er valinn strax
-				processQueue.add(new ProcessData(processID));
+				processQueue.add(new ProcessData(processID,0));
 				currentProcess = processQueue.peek();
 				processExecution.switchToProcess(processID);
-				this.processIsRunning = true;
+				processIsRunning = true;
 			}
 			else {
 				// process fer í biðröð
-				processQueue.add(new ProcessData(processID));	
+				processQueue.add(new ProcessData(processID,0));	
 			}
 			break;
 		case RR:
 			if(!processIsRunning) {
-				processQueue.add(new ProcessData(processID));
+				processQueue.add(new ProcessData(processID,0));
 				currentProcess = processQueue.peek();
 				startedProcess = System.currentTimeMillis();
 				processExecution.switchToProcess(processID);
-				this.processIsRunning = true;
+				processIsRunning = true;
 			}
 			else {
-				processQueue.add(new ProcessData(processID));
+				processQueue.add(new ProcessData(processID,0));
 			}
+			break;
 		case SPN:
 			
 			//Er process runnandi
@@ -157,6 +166,8 @@ public class Scheduler implements Runnable {
 	 * DO NOT CHANGE DEFINITION OF OPERATION
 	 */
 	public void processFinished(int processID) {
+		finished[processID] = System.currentTimeMillis();
+		
 		switch(policy) {
 		case FCFS:
 			System.out.println("Búúúúiiiin: " + processID);
@@ -186,10 +197,13 @@ public class Scheduler implements Runnable {
 					startRun[currentProcess.processID] = System.currentTimeMillis();
 				}
 			}
+			else {processIsRunning = false;}
 			
+			// TODO: mælingar á tíma
+			break;
 		case SPN:
 			System.out.println("Búúúúiiiin: " + processID);	
-			
+			break;
 		default:
 			break;
 		}
