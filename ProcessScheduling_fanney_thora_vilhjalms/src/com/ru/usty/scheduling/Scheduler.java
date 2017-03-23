@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 
+import org.lwjgl.Sys;
 
 import com.ru.usty.scheduling.process.ProcessExecution;
 import com.ru.usty.scheduling.process.ProcessHandler;
@@ -15,11 +16,20 @@ public class Scheduler implements Runnable {
 	Policy policy;
 	int quantum;
 	ProcessData currentProcess;
+	ProcessInfo currProcessInfo;
 	
 	// arrays of time info for keeping track of W E S
 	long[] added = new long[15];
 	long[] startRun = new long[15];
 	long[] finished = new long[15];
+	
+	long totalResponseTime;
+	long totalTurnaroundTime;
+	long avgResponseTime;
+	long avgTurnaroundTime;
+	long currentProcTime;
+	
+	int numberOfProcesses;
 	
 	boolean processIsRunning;
 	
@@ -57,7 +67,13 @@ public class Scheduler implements Runnable {
 			startRun[i] = 0;
 			finished[i] = 0;
 		}
-
+		
+		totalResponseTime = 0;
+		totalTurnaroundTime = 0;
+		avgResponseTime = 0;
+		avgTurnaroundTime = 0;
+		numberOfProcesses = 0;
+		
 		switch(policy) {
 		case FCFS:	//First-come-first-served, non-preemptive, interrupt on finish
 			System.out.println("Starting new scheduling task: First-come-first-served");
@@ -76,14 +92,10 @@ public class Scheduler implements Runnable {
 		case SPN:	//Shortest process next
 			System.out.println("Starting new scheduling task: Shortest process next");
 			processQueueSPN = new ArrayList<ProcessData>();
-			
-			
 			break;
 		case SRT:	//Shortest remaining time, preemptive (interrupt in add and finish)
 			System.out.println("Starting new scheduling task: Shortest remaining time");
-			/**
-			 * Add your policy specific initialization code here (if needed)
-			 */
+			processQueueSRT = new ArrayList<ProcessData>();
 			break;
 		case HRRN:	//Highest response ratio next, non-preemptive (interrupt in finish)
 		 			// monitor if there is a process already running						
@@ -99,10 +111,6 @@ public class Scheduler implements Runnable {
 			 */
 			break;
 		}
-
-		/**
-		 * Add general scheduling or initialization code here (if needed)
-		 */
 
 	}
 
@@ -120,6 +128,7 @@ public class Scheduler implements Runnable {
 				processQueue.add(new ProcessData(processID,0));
 				currentProcess = processQueue.peek();
 				processExecution.switchToProcess(processID);
+				System.out.println("startRun fær timagildi");
 				processIsRunning = true;
 			}
 			else {
@@ -132,6 +141,10 @@ public class Scheduler implements Runnable {
 				processQueue.add(new ProcessData(processID,0));
 				currentProcess = processQueue.peek();
 				startedProcess = System.currentTimeMillis();
+				// Ef hann hefur ekki fengið að keyra gefa tímagildi á starti
+				if(startRun[currentProcess.processID] == 0){
+					startRun[currentProcess.processID] = System.currentTimeMillis();
+				}
 				processExecution.switchToProcess(processID);
 				processIsRunning = true;
 			}
@@ -142,28 +155,32 @@ public class Scheduler implements Runnable {
 		case SPN:
 			//Er process runnandi
 			if(!processIsRunning) {
-
+				//kveikja á process
 				processExecution.switchToProcess(processID);
 				this.processIsRunning = true;
 			}
 			
 			else {
+				//bæta á röð
 				processQueueSPN.add(new ProcessData(processID, processExecution.getProcessInfo(processID).totalServiceTime));
 			}
+			break;
 		case SRT:
-			/*if(!processIsRunning) {
+			if(!processIsRunning) {
 				processExecution.switchToProcess(processID);
 				processIsRunning = true;
+				currProcessInfo = processExecution.getProcessInfo(processID);
+			}
+			else if((processExecution.getProcessInfo(processID).totalServiceTime - processExecution.getProcessInfo(processID).elapsedExecutionTime) > currProcessInfo.totalServiceTime) {
+				processQueueSRT.add(new ProcessData(processID, processExecution.getProcessInfo(processID).totalServiceTime));
 			}
 			else {
-				if(!processQueueSRT.isEmpty()) {
-					//bera saman við keyrandi process og ef styttri heildar estimated time tekur nýji við
+				processExecution.switchToProcess(processID);
+				processIsRunning = true;
+				processQueueSRT.add(currentProcess);
 				}
-				else {
-					//processQueueSRT.add(new ProcessData(processID, (processExecution.getProcessInfo(processID).totalServiceTime)-(processExecution.getProcessInfo(processID).elapsedWaitingTime));
-				}
-			}*/
 				
+			break;
 		default:
 			break;
 		
@@ -175,6 +192,7 @@ public class Scheduler implements Runnable {
 	 */
 	public void processFinished(int processID) {
 		finished[processID] = System.currentTimeMillis();
+		this.numberOfProcesses++;
 		
 		switch(policy) {
 		case FCFS:
@@ -186,19 +204,22 @@ public class Scheduler implements Runnable {
 				processIsRunning = true;
 				currentProcess = processQueue.peek();
 				System.out.println("Switching to process: " + processQueue.peek().processID);	
+				startRun[processQueue.peek().processID] = System.currentTimeMillis();
 				processExecution.switchToProcess(processQueue.peek().processID);			
+			
 			}		
 			break;
 		case RR:
-			// TODO: mælingar á tíma
+			if (numberOfProcesses == 15){
+				calculator();
+				}
 			break;
 		case SPN:
-			
+			//röði er ekki tóm, finna stysta processinn
 			if(!processQueueSPN.isEmpty()) {
 								
 				int queueID = 0;
 				long tempTime= 1000000000;
-				
 				for(int i = 0; i < processQueueSPN.size(); i++) {
 					
 					if(processQueueSPN.get(i).someTime < tempTime) {
@@ -207,50 +228,72 @@ public class Scheduler implements Runnable {
 						queueID = i;
 					}
 				}
-				processExecution.switchToProcess(processQueueSPN.get(queueID).processID);	
+//				kveikja á honum
 				processQueueSPN.remove(queueID);
-				processIsRunning = true;
+				processExecution.switchToProcess(processQueueSPN.get(queueID).processID);	
+				//processIsRunning = true;
 			}
+			//enginn process í bið, kveikja á næsta
 			else {
 				
 				processExecution.switchToProcess(processID);
 				processIsRunning  = false;
 			}
 			System.out.println("Búúúúiiiin: " + processID);	
-			
+			if (numberOfProcesses == 15){
+				calculator();
+				}
 			break;
 		case SRT:
 			
-			if(!processQueueSPN.isEmpty()) {
+			if(!processQueueSRT.isEmpty()) {
 				
 				int queueID = 0;
-				long tempTime= 1000000000;
-				
+				long tempTime= 10000000;
 				for(int i = 0; i < processQueueSRT.size(); i++) {
 					
-					if(processQueueSPN.get(i).someTime < tempTime) {
+					if(processQueueSRT.get(i).someTime < tempTime) {
 						
-						tempTime = processQueueSPN.get(i).someTime;
+						tempTime = processQueueSRT.get(i).someTime;
 						queueID = i;
 					}
-				}
-				processExecution.switchToProcess(processQueueSPN.get(queueID).processID);	
-				processQueueSPN.remove(queueID);
-				processIsRunning = true;
+}
+				processExecution.switchToProcess(processQueueSRT.get(queueID).processID);	
+				currProcessInfo.totalServiceTime = tempTime;
+				processQueueSRT.remove(queueID);
+				
 			}
 			else {
 				
-				processExecution.switchToProcess(processID);
+				//processExecution.switchToProcess(processID);
 				processIsRunning  = false;
 			}
 			System.out.println("Búúúúiiiin: " + processID);	
-			
+			if (numberOfProcesses == 15){
+				calculator();
+				}
 			break;
 		default:
 			break;
 		}
 	}
+	
 
+	public void calculator (){
+		 		for(int i = 0; i<this.numberOfProcesses ; i++){
+		 			
+		 			this.totalResponseTime += (this.startRun[i] - this.added[i]); //bið þar til keyrður
+		 			this.totalTurnaroundTime += (this.finished[i] - this.added[i]); // bið í kerfinu
+		 			
+		 			System.out.println("startRun: "+ this.startRun[i]+ " - added: "+ this.added[i]+
+		 			" makes total responsetime: " + this.totalResponseTime);
+		 		}
+		 		
+		 		this.avgResponseTime = (this.totalResponseTime/15);
+		 		this.avgTurnaroundTime = (this.totalTurnaroundTime/15);
+		 		System.out.println("Average Response Time: " + this.avgResponseTime);
+		 		System.out.println("Average Turnaround Time: " + this.avgTurnaroundTime);	
+		 	}
 	// Time Interrupt in Round Robin
 	@Override
 	public void run() {
@@ -280,6 +323,7 @@ public class Scheduler implements Runnable {
 				
 				// Ef hann hefur ekki fengið að keyra gefa tímagildi á starti
 				if(startRun[currentProcess.processID] == 0){
+					System.out.println("startRun fær timagildi");
 					startRun[currentProcess.processID] = System.currentTimeMillis();
 				}
 			}
