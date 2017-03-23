@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 
+import javax.sound.midi.SysexMessage;
+
 import org.lwjgl.Sys;
 
 import com.ru.usty.scheduling.process.ProcessExecution;
@@ -15,8 +17,10 @@ public class Scheduler implements Runnable {
 	ProcessExecution processExecution;
 	Policy policy;
 	int quantum;
+	int runningProcID;
 	ProcessData currentProcess;
-	ProcessInfo currProcessInfo;
+	long currTime;
+	//ProcessInfo currProcessInfo;
 	
 	// arrays of time info for keeping track of W E S
 	long[] added = new long[15];
@@ -27,7 +31,8 @@ public class Scheduler implements Runnable {
 	long totalTurnaroundTime;
 	long avgResponseTime;
 	long avgTurnaroundTime;
-	long currentProcTime;
+	
+	//long currentProcessTime;
 	
 	int numberOfProcesses;
 	
@@ -157,6 +162,7 @@ public class Scheduler implements Runnable {
 			if(!processIsRunning) {
 				//kveikja á process
 				processExecution.switchToProcess(processID);
+				runningProcID = processID;
 				this.processIsRunning = true;
 			}
 			
@@ -167,20 +173,30 @@ public class Scheduler implements Runnable {
 			break;
 		case SRT:
 			if(!processIsRunning) {
+				System.out.println("if: " + processID);
+				//kveikja á process
 				processExecution.switchToProcess(processID);
-				processIsRunning = true;
-				currProcessInfo = processExecution.getProcessInfo(processID);
+				runningProcID = processID;
+				System.out.println("procid:" + runningProcID);
+				this.processIsRunning = true;
+				currTime = processExecution.getProcessInfo(runningProcID).totalServiceTime - processExecution.getProcessInfo(runningProcID).elapsedExecutionTime;
 			}
-			else if((processExecution.getProcessInfo(processID).totalServiceTime - processExecution.getProcessInfo(processID).elapsedExecutionTime) > currProcessInfo.totalServiceTime) {
-				processQueueSRT.add(new ProcessData(processID, processExecution.getProcessInfo(processID).totalServiceTime));
+			else if(currTime > (processExecution.getProcessInfo(processID).totalServiceTime)) {
+				System.out.println("else if: " + processID);
+				processExecution.switchToProcess(processID);
+				processQueueSRT.add(new ProcessData(runningProcID,currTime));
+				currTime = processExecution.getProcessInfo(processID).totalServiceTime - processExecution.getProcessInfo(processID).elapsedExecutionTime;
+				runningProcID = processID;
+				
 			}
 			else {
-				processExecution.switchToProcess(processID);
-				processIsRunning = true;
-				processQueueSRT.add(currentProcess);
-				}
+				System.out.println("else: " + processID);
+				//bæta á röð
+				processQueueSRT.add(new ProcessData(processID, processExecution.getProcessInfo(processID).totalServiceTime));
+			}
 				
 			break;
+
 		default:
 			break;
 		
@@ -217,9 +233,10 @@ public class Scheduler implements Runnable {
 		case SPN:
 			//röði er ekki tóm, finna stysta processinn
 			if(!processQueueSPN.isEmpty()) {
-								
+				processIsRunning = true;
 				int queueID = 0;
 				long tempTime= 1000000000;
+				
 				for(int i = 0; i < processQueueSPN.size(); i++) {
 					
 					if(processQueueSPN.get(i).someTime < tempTime) {
@@ -229,27 +246,27 @@ public class Scheduler implements Runnable {
 					}
 				}
 //				kveikja á honum
-				processQueueSPN.remove(queueID);
 				processExecution.switchToProcess(processQueueSPN.get(queueID).processID);	
+				processQueueSPN.remove(queueID);
 				//processIsRunning = true;
 			}
 			//enginn process í bið, kveikja á næsta
 			else {
 				
 				processExecution.switchToProcess(processID);
-				processIsRunning  = false;
+				this.processIsRunning  = false;
 			}
 			System.out.println("Búúúúiiiin: " + processID);	
 			if (numberOfProcesses == 15){
 				calculator();
 				}
 			break;
+			
 		case SRT:
 			
 			if(!processQueueSRT.isEmpty()) {
-				
 				int queueID = 0;
-				long tempTime= 10000000;
+				long tempTime= 1000000000;
 				for(int i = 0; i < processQueueSRT.size(); i++) {
 					
 					if(processQueueSRT.get(i).someTime < tempTime) {
@@ -257,23 +274,33 @@ public class Scheduler implements Runnable {
 						tempTime = processQueueSRT.get(i).someTime;
 						queueID = i;
 					}
-}
-				processExecution.switchToProcess(processQueueSRT.get(queueID).processID);	
-				currProcessInfo.totalServiceTime = tempTime;
-				processQueueSRT.remove(queueID);
+				}
+//				kveikja á honum
 				
+				System.out.println("time:" + processQueueSRT.get(queueID).someTime);
+				System.out.println("tmptime:" + tempTime);
+
+				processExecution.switchToProcess(processQueueSRT.get(queueID).processID);	
+				//System.out.println("procesid: " + processExecution.getProcessInfo(processQueueSRT.get(queueID).processID).totalServiceTime);
+				currTime = tempTime;
+				processQueueSRT.remove(queueID);
+				//processIsRunning = true;
 			}
+			//enginn process í bið, kveikja á næsta
 			else {
 				
 				//processExecution.switchToProcess(processID);
-				processIsRunning  = false;
+				this.processIsRunning  = false;
 			}
 			System.out.println("Búúúúiiiin: " + processID);	
+			if(!processQueueSRT.isEmpty())
+				
+					
+			System.out.println("processQueue: " + processQueueSRT.size());
+				
 			if (numberOfProcesses == 15){
 				calculator();
 				}
-			break;
-		default:
 			break;
 		}
 	}
