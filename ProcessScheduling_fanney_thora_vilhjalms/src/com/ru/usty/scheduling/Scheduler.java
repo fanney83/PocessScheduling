@@ -1,7 +1,9 @@
 package com.ru.usty.scheduling;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedList;
+import java.util.PriorityQueue;
 import java.util.Queue;
 
 import javax.sound.midi.SysexMessage;
@@ -49,17 +51,34 @@ public class Scheduler implements Runnable {
 	Queue<ProcessData> processQueue;
 	ArrayList<ProcessData> processQueueSPN;
 	ArrayList<ProcessData> processQueueSRT;
+	
+	// assign priority based on RATIO
+	long priorityHRRN(int processID){
+		ProcessInfo info = processExecution.getProcessInfo(processID);
+		long w = info.elapsedWaitingTime;
+		long s = info.totalServiceTime;
+		return (w+s)/s;	
+	}
+	
+	// í HRRNviljum raða á queue eftir priority byggt á RATIO
+	PriorityQueue<ProcessData> processQueueHRRN = new PriorityQueue<ProcessData>(new Comparator<ProcessData>(){
 
-	/**
-	 * DO NOT CHANGE DEFINITION OF OPERATION
-	 */
+		@Override
+		public int compare(ProcessData p1, ProcessData p2){
+
+			if((priorityHRRN(p1.processID)) > (priorityHRRN(p2.processID))){
+				return -1;
+			}
+			if((priorityHRRN(p1.processID)) < (priorityHRRN(p2.processID))){
+				return -1;
+			}
+			return 0;
+		}});
+
 	public Scheduler(ProcessExecution processExecution) {
 		this.processExecution = processExecution;
 	}
 
-	/**
-	 * DO NOT CHANGE DEFINITION OF OPERATION
-	 */
 	public void startScheduling(Policy policy, int quantum) {
 
 		this.policy = policy;
@@ -105,9 +124,6 @@ public class Scheduler implements Runnable {
 		case HRRN:	//Highest response ratio next, non-preemptive (interrupt in finish)
 		 			// monitor if there is a process already running						
 			System.out.println("Starting new scheduling task: Highest response ratio next");
-			/**
-			 * Add your policy specific initialization code here (if needed)
-			 */
 			break;
 		case FB:	//Feedback, preemptive and timer
 			System.out.println("Starting new scheduling task: Feedback, quantum = " + quantum);
@@ -196,16 +212,23 @@ public class Scheduler implements Runnable {
 			}
 				
 			break;
+		case HRRN:
+			long p = priorityHRRN(processID);
+			processQueueHRRN.add(new ProcessData(processID,p));
 
+			if(!processIsRunning) {			
+				currentProcess = processQueueHRRN.remove();
+				processExecution.switchToProcess(currentProcess.processID); 
+				processIsRunning = true;
+				startRun[currentProcess.processID] = System.currentTimeMillis();
+			}
+			break;
 		default:
 			break;
 		
 		}
 	}
 
-	/**
-	 * DO NOT CHANGE DEFINITION OF OPERATION
-	 */
 	public void processFinished(int processID) {
 		finished[processID] = System.currentTimeMillis();
 		this.numberOfProcesses++;
@@ -302,25 +325,42 @@ public class Scheduler implements Runnable {
 				calculator();
 				}
 			break;
+		case HRRN:
+			System.out.println("Búúúúiiiin: " + processID);
+			
+			if(processQueueHRRN.peek() != null){
+				currentProcess = processQueueHRRN.remove();
+				processExecution.switchToProcess(currentProcess.processID);
+				startRun[currentProcess.processID] = System.currentTimeMillis();
+			}
+			else{
+				processIsRunning = false;
+			}
+			if(numberOfProcesses == 15){
+				calculator ();
+			}
+			break;
+		default:
+			break;
 		}
 	}
 	
 
 	public void calculator (){
-		 		for(int i = 0; i<this.numberOfProcesses ; i++){
-		 			
-		 			this.totalResponseTime += (this.startRun[i] - this.added[i]); //bið þar til keyrður
-		 			this.totalTurnaroundTime += (this.finished[i] - this.added[i]); // bið í kerfinu
-		 			
-		 			System.out.println("startRun: "+ this.startRun[i]+ " - added: "+ this.added[i]+
-		 			" makes total responsetime: " + this.totalResponseTime);
-		 		}
-		 		
-		 		this.avgResponseTime = (this.totalResponseTime/15);
-		 		this.avgTurnaroundTime = (this.totalTurnaroundTime/15);
-		 		System.out.println("Average Response Time: " + this.avgResponseTime);
-		 		System.out.println("Average Turnaround Time: " + this.avgTurnaroundTime);	
-		 	}
+ 		for(int i = 0; i<this.numberOfProcesses ; i++){
+ 			
+ 			this.totalResponseTime += (this.startRun[i] - this.added[i]); //bið þar til keyrður
+ 			this.totalTurnaroundTime += (this.finished[i] - this.added[i]); // bið í kerfinu
+ 			
+ 			System.out.println("startRun: "+ this.startRun[i]+ " - added: "+ this.added[i]+
+ 			" makes total responsetime: " + this.totalResponseTime);
+ 		}
+ 		
+ 		this.avgResponseTime = (this.totalResponseTime/15);
+ 		this.avgTurnaroundTime = (this.totalTurnaroundTime/15);
+ 		System.out.println("Average Response Time: " + this.avgResponseTime);
+ 		System.out.println("Average Turnaround Time: " + this.avgTurnaroundTime);	
+ 	}
 	// Time Interrupt in Round Robin
 	@Override
 	public void run() {
