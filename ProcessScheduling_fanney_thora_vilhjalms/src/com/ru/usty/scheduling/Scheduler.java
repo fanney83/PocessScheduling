@@ -187,16 +187,18 @@ public class Scheduler implements Runnable {
 				//kveikja á process
 				processExecution.switchToProcess(processID);
 				runningProcID = processID;
+				startRun[runningProcID] = System.currentTimeMillis();
 				System.out.println("procid:" + runningProcID);
-				this.processIsRunning = true;
+				processIsRunning = true;
 				currTime = processExecution.getProcessInfo(runningProcID).totalServiceTime - processExecution.getProcessInfo(runningProcID).elapsedExecutionTime;
 			}
 			else if(currTime > (processExecution.getProcessInfo(processID).totalServiceTime)) {
 				System.out.println("else if: " + processID);
 				processExecution.switchToProcess(processID);
+				runningProcID = processID;
+				startRun[runningProcID] = System.currentTimeMillis();
 				processQueueSRT.add(new ProcessData(runningProcID,currTime));
 				currTime = processExecution.getProcessInfo(processID).totalServiceTime - processExecution.getProcessInfo(processID).elapsedExecutionTime;
-				runningProcID = processID;
 				
 			}
 			else {
@@ -296,10 +298,12 @@ public class Scheduler implements Runnable {
 				
 				System.out.println("time:" + processQueueSRT.get(queueID).someTime);
 				System.out.println("tmptime:" + tempTime);
-
-				processExecution.switchToProcess(processQueueSRT.get(queueID).processID);	
+				currTime = processQueueSRT.get(queueID).someTime;
+				runningProcID = processQueueSRT.get(queueID).processID;
+				startRun[runningProcID] = System.currentTimeMillis();
+				processExecution.switchToProcess(runningProcID);	
 				//System.out.println("procesid: " + processExecution.getProcessInfo(processQueueSRT.get(queueID).processID).totalServiceTime);
-				currTime = tempTime;
+				
 				processQueueSRT.remove(queueID);
 				//processIsRunning = true;
 			}
@@ -307,7 +311,7 @@ public class Scheduler implements Runnable {
 			else {
 				
 				//processExecution.switchToProcess(processID);
-				this.processIsRunning  = false;
+				processIsRunning  = false;
 			}
 			System.out.println("Búúúúiiiin: " + processID);	
 			if(!processQueueSRT.isEmpty())
