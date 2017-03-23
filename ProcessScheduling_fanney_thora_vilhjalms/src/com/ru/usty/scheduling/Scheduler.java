@@ -127,17 +127,11 @@ public class Scheduler implements Runnable {
 			break;
 		case FB:	//Feedback, preemptive and timer
 			System.out.println("Starting new scheduling task: Feedback, quantum = " + quantum);
-			/**
-			 * Add your policy specific initialization code here (if needed)
-			 */
 			break;
 		}
 
 	}
 
-	/**
-	 * DO NOT CHANGE DEFINITION OF OPERATION
-	 */
 	public void processAdded(int processID) {
 		added[processID] = System.currentTimeMillis();
 		
